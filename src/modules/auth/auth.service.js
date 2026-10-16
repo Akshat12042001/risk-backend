@@ -6,15 +6,9 @@ import { ApiError } from '../../utils/apiError.js';
 import { signAccessToken } from '../../utils/jwt.js';
 import { generateOtp, hashOtp, otpMatches } from '../../utils/otp.js';
 import { normalizePhone } from '../../utils/phone.js';
-
-function toUserPayload(user, isNewUser) {
-  return {
-    id: user._id,
-    phone: user.phone,
-    name: user.name,
-    isNewUser,
-  };
-}
+import { generateReferralCode } from '../../utils/referralCode.js';
+import { toUserPayload } from '../users/user.mapper.js';
+import { ensureReferralCode } from '../users/user.service.js';
 
 export async function sendOtp(rawPhone) {
   const phone = normalizePhone(rawPhone);
@@ -86,13 +80,26 @@ export async function verifyOtp(rawPhone, otp) {
   const isNewUser = !user;
 
   if (!user) {
-    try {
-      user = await User.create({ phone, lastLoginAt: new Date() });
-    } catch (error) {
-      if (error?.code !== 11000) {
-        throw error;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        user = await User.create({
+          phone,
+          lastLoginAt: new Date(),
+          referralCode: generateReferralCode(),
+        });
+        break;
+      } catch (error) {
+        if (error?.code !== 11000) {
+          throw error;
+        }
+        if (error.keyPattern?.phone) {
+          user = await User.findOne({ phone });
+          break;
+        }
       }
-      user = await User.findOne({ phone });
+    }
+    if (!user) {
+      throw new ApiError(500, 'Something went wrong');
     }
   } else {
     user.lastLoginAt = new Date();
@@ -113,9 +120,12 @@ export async function logout(userId) {
 }
 
 export async function getCurrentUser(userId) {
-  const user = await User.findById(userId).select('_id phone name');
+  const user = await User.findById(userId).select(
+    '_id phone name firstName lastName email referralCode referredByCode',
+  );
   if (!user) {
     throw new ApiError(401, 'Login required');
   }
+  await ensureReferralCode(user);
   return toUserPayload(user, false);
 }

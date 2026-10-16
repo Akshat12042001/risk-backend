@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:start": "$HOME/mongodb/bin/mongod --dbpath $HOME/mongodb/data --bind_ip 127.0.0.1 --port 27017 --fork --logpath $HOME/mongodb/mongod.log",
+    "db:stop": "$HOME/mongodb/bin/mongod --dbpath $HOME/mongodb/data --shutdown",
     "dev": "node --watch src/server.js",
     "start": "node src/server.js"
   },
