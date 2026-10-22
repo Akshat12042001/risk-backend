@@ -1,5 +1,5 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
-import { createAddress, deleteAddress, listAddresses, updateAddress } from './address.service.js';
+import { createAddress, deleteAddress, listAddresses, markCurrentAddress, updateAddress } from './address.service.js';
 
 export const listAddressesController = asyncHandler(async (req, res) => {
   const addresses = await listAddresses(req.user._id);
@@ -24,6 +24,15 @@ export const updateAddressController = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Address updated',
+    data: { address },
+  });
+});
+
+export const markCurrentAddressController = asyncHandler(async (req, res) => {
+  const address = await markCurrentAddress(req.user._id, req.validated.params.addressId);
+  res.status(200).json({
+    success: true,
+    message: 'Current address updated',
     data: { address },
   });
 });

@@ -73,6 +73,13 @@ export async function updateAddress(userId, addressId, input) {
   return toAddressPayload(address);
 }
 
+export async function markCurrentAddress(userId, addressId) {
+  const address = await findOwnedAddress(userId, addressId);
+  await selectAddress(userId, address._id);
+  address.isSelected = true;
+  return toAddressPayload(address);
+}
+
 export async function deleteAddress(userId, addressId) {
   const address = await findOwnedAddress(userId, addressId);
   const wasSelected = address.isSelected;
